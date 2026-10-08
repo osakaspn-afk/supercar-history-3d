@@ -1,8 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
-import { Car3DModel, type Car3DProps } from './Car3DModel';
+import { RealisticCarModel } from './RealisticCarModel';
+import { ModelLoadingFallback } from './ModelLoadingFallback';
+import type { Car3DProps } from './Car3DModel';
 import { WindTunnelAero } from './WindTunnelAero';
 
 export type CameraPreset = 'cinematic' | 'front_quarter' | 'side_profile' | 'rear_aero' | 'top_aero' | 'wheel_focus';
@@ -127,8 +129,10 @@ export const ShowroomCanvas: React.FC<ShowroomCanvasProps> = ({
         {/* Environment Lights */}
         {getLighting()}
 
-        {/* 3D Car Model */}
-        <Car3DModel {...carProps} />
+        {/* Real 3D Supercar Model */}
+        <Suspense fallback={<ModelLoadingFallback accentColor={accentColor} />}>
+          <RealisticCarModel {...carProps} />
+        </Suspense>
 
         {/* Aerodynamic Wind Tunnel Particles */}
         <WindTunnelAero active={windTunnelActive} accentColor={accentColor} />

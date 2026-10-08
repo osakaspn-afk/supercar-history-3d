@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
-import { Car3DModel } from './Car3DModel';
+import { RealisticCarModel } from './RealisticCarModel';
+import { ModelLoadingFallback } from './ModelLoadingFallback';
 import { WindTunnelAero } from './WindTunnelAero';
 
 interface ScrollExperienceCanvasProps {
@@ -116,18 +117,20 @@ export const ScrollExperienceCanvas: React.FC<ScrollExperienceCanvasProps> = ({
         <directionalLight position={[-6, 5, -6]} intensity={1.4} color={accentColor} />
         <spotLight position={[0, 9, 2]} intensity={45} angle={0.6} penumbra={0.8} color="#ffffff" />
 
-        {/* 3D Car Model */}
-        <Car3DModel
-          color={color}
-          finish={finish}
-          silhouette={silhouette}
-          headlightsOn={true}
-          doorsOpen={doorsOpen}
-          wingActive={wingActive}
-          wireframe={false}
-          underglow={true}
-          wheelSpinSpeed={effectiveSpinSpeed}
-        />
+        {/* Real 3D Supercar Model */}
+        <Suspense fallback={<ModelLoadingFallback accentColor={accentColor} />}>
+          <RealisticCarModel
+            color={color}
+            finish={finish}
+            silhouette={silhouette}
+            headlightsOn={true}
+            doorsOpen={doorsOpen}
+            wingActive={wingActive}
+            wireframe={false}
+            underglow={true}
+            wheelSpinSpeed={effectiveSpinSpeed}
+          />
+        </Suspense>
 
         {/* Aerodynamic Wind Tunnel Flow Streamlines */}
         <WindTunnelAero active={isAeroChapter} accentColor={accentColor} />
