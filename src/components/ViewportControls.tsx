@@ -38,6 +38,7 @@ interface ViewportControlsProps {
   finish: 'metallic' | 'matte' | 'carbon';
   onSelectFinish: (finish: 'metallic' | 'matte' | 'carbon') => void;
   isThai: boolean;
+  silhouette?: 'porsche' | 'nissan' | 'lamborghini' | 'toyota';
 }
 
 export const ViewportControls: React.FC<ViewportControlsProps> = ({
@@ -65,6 +66,7 @@ export const ViewportControls: React.FC<ViewportControlsProps> = ({
   finish,
   onSelectFinish,
   isThai,
+  silhouette,
 }) => {
   return (
     <div className="flex flex-col gap-3 pointer-events-auto">
@@ -141,15 +143,27 @@ export const ViewportControls: React.FC<ViewportControlsProps> = ({
         {/* Doors Open/Close Toggle */}
         <button
           onClick={onToggleDoors}
-          title={isThai ? 'เปิด/ปิด ประตู' : 'Toggle Doors'}
+          title={
+            silhouette === 'lamborghini'
+              ? isThai ? 'เปิด/ปิด ประตูปีกนก (Scissor Doors)' : 'Toggle Scissor Doors'
+              : isThai ? 'เปิด/ปิด มุมมองห้องโดยสาร (Cockpit View)' : 'Toggle Cockpit View'
+          }
           className={`px-2.5 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center gap-1.5 transition-all ${
             doorsOpen
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+              ? 'bg-amber-500/25 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.35)]'
               : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-700/40'
           }`}
         >
           <Maximize2 className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{doorsOpen ? (isThai ? 'ปิดประตู' : 'CLOSE DOORS') : (isThai ? 'เปิดประตู' : 'OPEN DOORS')}</span>
+          <span className="hidden sm:inline">
+            {silhouette === 'lamborghini'
+              ? doorsOpen
+                ? isThai ? 'ปิดประตูปีกนก' : 'CLOSE SCISSOR DOORS'
+                : isThai ? 'เปิดประตูปีกนก' : 'OPEN SCISSOR DOORS'
+              : doorsOpen
+                ? isThai ? 'ปิดชมห้องโดยสาร' : 'CLOSE COCKPIT'
+                : isThai ? 'เปิดชมห้องโดยสาร' : 'OPEN COCKPIT'}
+          </span>
         </button>
 
         {/* Wind Tunnel Aero Streamlines */}

@@ -312,6 +312,7 @@ export const App: React.FC = () => {
                 finish={finish}
                 onSelectFinish={setFinish}
                 isThai={isThai}
+                silhouette={selectedModel.silhouetteType}
               />
             </div>
           </section>

@@ -41,16 +41,16 @@ const MODEL_CALIBRATIONS: Record<
     yOffset: 0.0,
   },
   nissan: {
-    targetLength: 4.6,
-    rotationY: 0, // Face forward (+Z), Y-up
+    targetLength: 4.68,
+    rotationY: 0, // Facing +Z forward
     rotationX: 0,
     yOffset: 0.0,
   },
   lamborghini: {
-    targetLength: 4.7,
-    rotationY: Math.PI / 2, // Modeled along X axis (-X is front), rotate 90° to face +Z
+    targetLength: 4.8,
+    rotationY: 0,
     rotationX: 0,
-    yOffset: 0.0,
+    yOffset: 0.05,
   },
   toyota: {
     targetLength: 4.5,
@@ -59,6 +59,55 @@ const MODEL_CALIBRATIONS: Record<
     yOffset: 0.0,
   },
 };
+
+// Helper: split a symmetrical GLTF mesh into Left (local Y < 0) and Right (local Y > 0) sub-meshes
+function splitIndexedGeometryByY(mesh: THREE.Mesh): { leftMesh: THREE.Mesh; rightMesh: THREE.Mesh } | null {
+  const geom = mesh.geometry as THREE.BufferGeometry;
+  if (!geom || !geom.attributes.position) return null;
+
+  const posAttr = geom.attributes.position;
+  const isIndexed = !!geom.index;
+  const count = isIndexed ? geom.index!.count : posAttr.count;
+
+  const leftIndices: number[] = [];
+  const rightIndices: number[] = [];
+
+  for (let i = 0; i < count; i += 3) {
+    const i0 = isIndexed ? geom.index!.getX(i) : i;
+    const i1 = isIndexed ? geom.index!.getX(i + 1) : i + 1;
+    const i2 = isIndexed ? geom.index!.getX(i + 2) : i + 2;
+
+    const y0 = posAttr.getY(i0);
+    const y1 = posAttr.getY(i1);
+    const y2 = posAttr.getY(i2);
+    const avgY = (y0 + y1 + y2) / 3;
+
+    if (avgY < 0) {
+      leftIndices.push(i0, i1, i2);
+    } else {
+      rightIndices.push(i0, i1, i2);
+    }
+  }
+
+  const leftGeom = geom.clone();
+  leftGeom.setIndex(leftIndices);
+  const rightGeom = geom.clone();
+  rightGeom.setIndex(rightIndices);
+
+  const leftMesh = mesh.clone();
+  leftMesh.geometry = leftGeom;
+  leftMesh.name = `${mesh.name}_Left`;
+  leftMesh.userData.baseMaterial = mesh.userData.baseMaterial || mesh.material;
+  leftMesh.userData.baseMatName = mesh.userData.baseMatName || (mesh.material as any)?.name || '';
+
+  const rightMesh = mesh.clone();
+  rightMesh.geometry = rightGeom;
+  rightMesh.name = `${mesh.name}_Right`;
+  rightMesh.userData.baseMaterial = mesh.userData.baseMaterial || mesh.material;
+  rightMesh.userData.baseMatName = mesh.userData.baseMatName || (mesh.material as any)?.name || '';
+
+  return { leftMesh, rightMesh };
+}
 
 export const RealisticCarModel: React.FC<RealisticCarProps> = ({
   color,
@@ -79,15 +128,18 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
 
   const groupRef = useRef<THREE.Group>(null);
   const wheelsRef = useRef<THREE.Mesh[]>([]);
-  const doorsRef = useRef<THREE.Mesh[]>([]);
   const wingRef = useRef<THREE.Mesh[]>([]);
+  const leftDoorHingeRef = useRef<THREE.Group | null>(null);
+  const rightDoorHingeRef = useRef<THREE.Group | null>(null);
+  const cockpitFadeMeshesRef = useRef<THREE.Mesh[]>([]);
 
-  // Clone and configure materials & transforms
+  // Clone and configure materials, transforms, and Lamborghini scissor door assemblies
   const { clonedScene, carDimensions } = useMemo(() => {
     const clone = scene.clone(true);
     wheelsRef.current = [];
-    doorsRef.current = [];
     wingRef.current = [];
+    leftDoorHingeRef.current = null;
+    rightDoorHingeRef.current = null;
 
     // Permanently preserve original materials from GLB so wireframe toggling never loses them
     clone.traverse((child) => {
@@ -97,6 +149,62 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
         mesh.userData.baseMatName = (mesh.material as any)?.name || '';
       }
     });
+
+    // Lamborghini Scissor Doors Articulation Assembly Setup
+    if (silhouette === 'lamborghini') {
+      const doorNames = ['Obj_Side_Doors', 'Obj_Doors_UpperFrame', 'Obj_ORVM', 'Obj_ORVM_Shield_Glass'];
+      let parentNode: THREE.Object3D | null = null;
+      const doorMeshes: THREE.Mesh[] = [];
+
+      clone.traverse((child) => {
+        if (child.name && doorNames.includes(child.name)) {
+          if (!parentNode && child.parent) parentNode = child.parent;
+          if ((child as THREE.Mesh).isMesh) {
+            doorMeshes.push(child as THREE.Mesh);
+          }
+        }
+      });
+
+      if (parentNode && doorMeshes.length > 0) {
+        // A-pillar front hinge points in local coordinate space
+        const leftHingePivot = new THREE.Vector3(0.35, -0.78, -0.95);
+        const rightHingePivot = new THREE.Vector3(0.35, 0.78, -0.95);
+
+        const leftHinge = new THREE.Group();
+        leftHinge.name = 'LeftDoorHinge';
+        leftHinge.position.copy(leftHingePivot);
+        const leftSub = new THREE.Group();
+        leftSub.position.copy(leftHingePivot).negate();
+        leftHinge.add(leftSub);
+
+        const rightHinge = new THREE.Group();
+        rightHinge.name = 'RightDoorHinge';
+        rightHinge.position.copy(rightHingePivot);
+        const rightSub = new THREE.Group();
+        rightSub.position.copy(rightHingePivot).negate();
+        rightHinge.add(rightSub);
+
+        const doorContainer = new THREE.Group();
+        doorContainer.name = 'DoorContainer';
+        doorContainer.position.set(0, -0.038278, 0);
+        doorContainer.quaternion.set(0.7071068, 0, 0, 0.7071067);
+        doorContainer.add(leftHinge);
+        doorContainer.add(rightHinge);
+
+        doorMeshes.forEach((dm) => {
+          const split = splitIndexedGeometryByY(dm);
+          if (split) {
+            leftSub.add(split.leftMesh);
+            rightSub.add(split.rightMesh);
+          }
+          dm.visible = false;
+        });
+
+        (parentNode as THREE.Object3D).add(doorContainer);
+        leftDoorHingeRef.current = leftHinge;
+        rightDoorHingeRef.current = rightHinge;
+      }
+    }
 
     // Calculate initial raw bounding box
     const initialBox = new THREE.Box3().setFromObject(clone);
@@ -140,8 +248,8 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
     if (!clonedScene) return;
 
     wheelsRef.current = [];
-    doorsRef.current = [];
     wingRef.current = [];
+    cockpitFadeMeshesRef.current = [];
 
     // Custom automotive paint material
     let paintMat: THREE.Material;
@@ -225,7 +333,7 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
       roughness: 0.22,
     });
 
-    // Traverse all meshes in the high-res 3D model
+    // Traverse all meshes in the high-res 3D model (including split door meshes)
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -334,29 +442,42 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
           wheelsRef.current.push(mesh);
         }
 
-        // Cache doors for opening animation
-        if (nodeName.includes('door')) {
-          doorsRef.current.push(mesh);
+        // Cache spoiler / wing / DRS
+        if (
+          nodeName.includes('wing') ||
+          nodeName.includes('spoiler') ||
+          nodeName.includes('cube.002') ||
+          nodeName === 'boot.001' ||
+          nodeName.includes('boot_lid')
+        ) {
+          wingRef.current.push(mesh);
         }
 
-        // Cache spoiler / wing
-        if (nodeName.includes('wing') || nodeName.includes('spoiler')) {
-          wingRef.current.push(mesh);
+        // Cache window/glass meshes on other supercars for cockpit inspection fade
+        if (silhouette !== 'lamborghini') {
+          if (
+            matName.includes('glass') ||
+            matName.includes('window') ||
+            nodeName.includes('window') ||
+            nodeName.includes('windshield')
+          ) {
+            cockpitFadeMeshesRef.current.push(mesh);
+          }
         }
       }
     });
   }, [clonedScene, color, finish, wireframe, headlightsOn, silhouette]);
 
-  // Frame animation loop (Wheel rotation, active aero, doors)
+  // Frame animation loop (Wheel rotation, active aero, scissor doors, cockpit fade)
   useFrame((_, delta) => {
-    // Wheel spinning animation
+    // 1. Wheel spinning animation
     if (wheelSpinSpeed > 0 && wheelsRef.current.length > 0) {
       wheelsRef.current.forEach((w) => {
         w.rotation.x += delta * wheelSpinSpeed * 18;
       });
     }
 
-    // Active Aero Wing DRS tilt
+    // 2. Active Aero Wing DRS tilt
     if (wingRef.current.length > 0) {
       const targetWingAngle = wingActive ? -0.28 : 0;
       wingRef.current.forEach((w) => {
@@ -364,14 +485,46 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
       });
     }
 
-    // Doors animation
-    if (doorsRef.current.length > 0) {
-      const targetDoorOpen = doorsOpen ? (silhouette === 'lamborghini' ? -0.75 : 0.6) : 0;
-      doorsRef.current.forEach((d) => {
-        if (silhouette === 'lamborghini') {
-          d.rotation.x = THREE.MathUtils.lerp(d.rotation.x, targetDoorOpen, delta * 5);
-        } else {
-          d.rotation.y = THREE.MathUtils.lerp(d.rotation.y, targetDoorOpen, delta * 5);
+    // 3. Lamborghini Authentic Scissor Doors Animation
+    if (leftDoorHingeRef.current && rightDoorHingeRef.current) {
+      // Rotate upward around Y and flare outward around Z
+      const targetRotY = doorsOpen ? 0.82 : 0; // ~47 degrees scissor elevation
+      const targetRotZLeft = doorsOpen ? 0.16 : 0;
+      const targetRotZRight = doorsOpen ? -0.16 : 0;
+
+      leftDoorHingeRef.current.rotation.y = THREE.MathUtils.lerp(
+        leftDoorHingeRef.current.rotation.y,
+        targetRotY,
+        delta * 4.5
+      );
+      leftDoorHingeRef.current.rotation.z = THREE.MathUtils.lerp(
+        leftDoorHingeRef.current.rotation.z,
+        targetRotZLeft,
+        delta * 4.5
+      );
+
+      rightDoorHingeRef.current.rotation.y = THREE.MathUtils.lerp(
+        rightDoorHingeRef.current.rotation.y,
+        targetRotY,
+        delta * 4.5
+      );
+      rightDoorHingeRef.current.rotation.z = THREE.MathUtils.lerp(
+        rightDoorHingeRef.current.rotation.z,
+        targetRotZRight,
+        delta * 4.5
+      );
+    }
+
+    // 4. Cockpit View Fade Inspection for other supercars (Porsche, Nissan, LFA)
+    if (silhouette !== 'lamborghini' && cockpitFadeMeshesRef.current.length > 0) {
+      const targetOpacity = doorsOpen ? 0.15 : 0.85;
+      cockpitFadeMeshesRef.current.forEach((m) => {
+        if (m.material && (m.material as any).opacity !== undefined) {
+          (m.material as any).opacity = THREE.MathUtils.lerp(
+            (m.material as any).opacity,
+            targetOpacity,
+            delta * 5
+          );
         }
       });
     }
@@ -408,26 +561,21 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
         </>
       )}
 
-      {/* Underglow Neon Kit */}
+      {/* Underglow Neon Lighting */}
       {underglow && (
-        <group position={[0, 0.08, 0]}>
-          <pointLight color={color} intensity={35} distance={3.8} decay={2} />
-          <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[carDimensions.x * 0.9, carDimensions.z * 0.9]} />
-            <meshBasicMaterial
-              color={color}
-              transparent
-              opacity={0.35}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-        </group>
+        <pointLight
+          position={[0, 0.08, 0]}
+          color={color}
+          intensity={12}
+          distance={4.2}
+          decay={2}
+        />
       )}
+
+      {/* Car Dimensions Bounding Indicator for debugging / HUD */}
+      <mesh visible={false}>
+        <boxGeometry args={[carDimensions.x, carDimensions.y, carDimensions.z]} />
+      </mesh>
     </group>
   );
 };
-
-// Preload models for instant loading
-Object.values(MODEL_PATHS).forEach((path) => {
-  useGLTF.preload(path, '/draco/gltf/');
-});
