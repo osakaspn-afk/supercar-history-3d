@@ -89,6 +89,15 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
     doorsRef.current = [];
     wingRef.current = [];
 
+    // Permanently preserve original materials from GLB so wireframe toggling never loses them
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.userData.baseMaterial = mesh.material;
+        mesh.userData.baseMatName = (mesh.material as any)?.name || '';
+      }
+    });
+
     // Calculate initial raw bounding box
     const initialBox = new THREE.Box3().setFromObject(clone);
     const initialSize = new THREE.Vector3();
@@ -126,18 +135,17 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
     };
   }, [scene, silhouette, calibration]);
 
-  // Update materials dynamically (Paint, Glass, Lights, Calipers, Carbon)
+  // Update materials dynamically (Paint, Glass, Lights, Calipers, Carbon, X-Ray)
   useMemo(() => {
     if (!clonedScene) return;
 
+    wheelsRef.current = [];
+    doorsRef.current = [];
+    wingRef.current = [];
+
     // Custom automotive paint material
     let paintMat: THREE.Material;
-    if (wireframe) {
-      paintMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(color).offsetHSL(0, 0, 0.2),
-        wireframe: true,
-      });
-    } else if (finish === 'matte') {
+    if (finish === 'matte') {
       paintMat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(color),
         roughness: 0.65,
@@ -161,20 +169,71 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
       });
     }
 
+    // Holographic CAD X-Ray Blueprint material
+    const xrayMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#06b6d4'), // Neon Cyan Blueprint
+      wireframe: true,
+      transparent: true,
+      opacity: 0.88,
+    });
+
+    // Glass material
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0a0e17,
+      metalness: 0.1,
+      roughness: 0.04,
+      transmission: 0.8,
+      thickness: 0.5,
+      transparent: true,
+      opacity: 0.85,
+    });
+
+    // Carbon fiber material
+    const carbonMat = new THREE.MeshStandardMaterial({
+      color: '#151618',
+      roughness: 0.3,
+      metalness: 0.75,
+    });
+
+    // Honeycomb grille material
+    const grilleMat = new THREE.MeshStandardMaterial({
+      color: 0x111317,
+      roughness: 0.7,
+      metalness: 0.4,
+    });
+
+    // Caliper material
+    const caliperColor =
+      silhouette === 'porsche'
+        ? 0xa3e635 // Acid Green
+        : silhouette === 'nissan'
+        ? 0xdc2626 // Nismo Red
+        : silhouette === 'lamborghini'
+        ? 0xeab308 // Giallo Yellow
+        : 0x2563eb; // Lexus F-Sport Blue
+
+    const caliperMat = new THREE.MeshStandardMaterial({
+      color: caliperColor,
+      metalness: 0.7,
+      roughness: 0.22,
+    });
+
+    // Wheel rim material
+    const rimMat = new THREE.MeshStandardMaterial({
+      color: silhouette === 'toyota' ? 0xd4d4d8 : 0x27272a,
+      metalness: 0.9,
+      roughness: 0.22,
+    });
+
     // Traverse all meshes in the high-res 3D model
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
+        mesh.castShadow = !wireframe;
+        mesh.receiveShadow = !wireframe;
 
-        if (wireframe) {
-          mesh.material = paintMat;
-          return;
-        }
-
-        const mat = mesh.material as THREE.MeshStandardMaterial;
-        const matName = (mat?.name || '').toLowerCase();
+        const baseMat = mesh.userData.baseMaterial || mesh.material;
+        const matName = (mesh.userData.baseMatName || (baseMat as any)?.name || '').toLowerCase();
         const nodeName = (mesh.name || '').toLowerCase();
 
         // Identify trim, plastic, emblem, or non-paint elements that should preserve native textures
@@ -197,6 +256,9 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
           matName.includes('exhaust') ||
           matName.includes('full_black');
 
+        // Determine configured showroom material
+        let targetMat: THREE.Material = baseMat;
+
         // 1. Car Body Paint Identification
         const isBodyPaint =
           !isNonPaintTrim &&
@@ -213,102 +275,53 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
             nodeName === 'coloured');
 
         if (isBodyPaint) {
-          mesh.material = paintMat;
-        }
-
-        // Carbon Fiber Components (e.g., Lexus LFA CFRP roof & rear diffuser)
-        const isCarbonFiber = matName.includes('carbon') || nodeName.includes('carbon');
-        if (isCarbonFiber) {
-          mesh.material = new THREE.MeshStandardMaterial({
-            color: '#151618',
-            roughness: 0.3,
-            metalness: 0.75,
-          });
-        }
-
-        // Honeycomb Mesh & Aero Grilles
-        const isGrille = nodeName.includes('grille');
-        if (isGrille) {
-          mesh.material = new THREE.MeshStandardMaterial({
-            color: 0x111317,
-            roughness: 0.7,
-            metalness: 0.4,
-          });
-        }
-
-        // 2. Windows and Windshields (Tinted Automotive Glass)
-        const isGlass =
+          targetMat = paintMat;
+        } else if (matName.includes('carbon') || nodeName.includes('carbon')) {
+          targetMat = carbonMat;
+        } else if (nodeName.includes('grille')) {
+          targetMat = grilleMat;
+        } else if (
           matName.includes('glass') ||
           matName.includes('window') ||
           matName.includes('windscreen') ||
           nodeName.includes('window') ||
           nodeName.includes('windshield') ||
-          nodeName.toLowerCase().startsWith('glass');
-
-        if (isGlass) {
-          mesh.material = new THREE.MeshPhysicalMaterial({
-            color: 0x0a0e17,
-            metalness: 0.1,
-            roughness: 0.04,
-            transmission: 0.8,
-            thickness: 0.5,
-            transparent: true,
-            opacity: 0.85,
-          });
-        }
-
-        // 3. Headlights & Taillights
-        const isLight =
+          nodeName.toLowerCase().startsWith('glass')
+        ) {
+          targetMat = glassMat;
+        } else if (
           matName.includes('light') ||
           matName.includes('lamp') ||
           matName.includes('turnlight') ||
           nodeName.includes('headlight') ||
           nodeName.includes('taillight') ||
-          nodeName === 'light';
-
-        if (isLight) {
+          nodeName === 'light'
+        ) {
           const isRear = matName.includes('tail') || matName.includes('red') || nodeName.includes('rear');
-          mesh.material = new THREE.MeshStandardMaterial({
+          targetMat = new THREE.MeshStandardMaterial({
             color: isRear ? 0xff0022 : headlightsOn ? 0xffffff : 0x475569,
             emissive: isRear ? 0xff0033 : headlightsOn ? 0xa5f3fc : 0x000000,
             emissiveIntensity: headlightsOn ? 4.0 : 0.2,
             roughness: 0.1,
           });
-        }
-
-        // 4. Alloy Wheel Rims
-        const isWheelRim =
+        } else if (
           nodeName.includes('wheel_') ||
-          (nodeName.includes('wheel') && !nodeName.includes('steering'));
-        if (isWheelRim) {
-          mesh.material = new THREE.MeshStandardMaterial({
-            color: silhouette === 'toyota' ? 0xd4d4d8 : 0x27272a,
-            metalness: 0.9,
-            roughness: 0.22,
-          });
-        }
-
-        // 5. Brake Calipers
-        const isCaliper =
+          (nodeName.includes('wheel') && !nodeName.includes('steering'))
+        ) {
+          targetMat = rimMat;
+        } else if (
           matName.includes('caliper') ||
           nodeName.includes('caliper') ||
-          (nodeName.includes('brake') && !nodeName.includes('rotor') && !nodeName.includes('disc'));
-        if (isCaliper) {
-          const caliperColor =
-            silhouette === 'porsche'
-              ? 0xa3e635 // Acid Green
-              : silhouette === 'nissan'
-              ? 0xdc2626 // Nismo Red
-              : silhouette === 'lamborghini'
-              ? 0xeab308 // Giallo Yellow
-              : 0x2563eb; // Lexus F-Sport Blue
-
-          mesh.material = new THREE.MeshStandardMaterial({
-            color: caliperColor,
-            metalness: 0.7,
-            roughness: 0.22,
-          });
+          (nodeName.includes('brake') && !nodeName.includes('rotor') && !nodeName.includes('disc'))
+        ) {
+          targetMat = caliperMat;
         }
+
+        // Store showroom material reference
+        mesh.userData.showroomMaterial = targetMat;
+
+        // Apply X-Ray if enabled, otherwise restore showroom material
+        mesh.material = wireframe ? xrayMat : targetMat;
 
         // Cache wheels for spinning animation
         if (
