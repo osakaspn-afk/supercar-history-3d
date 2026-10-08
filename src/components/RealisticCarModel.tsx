@@ -20,7 +20,7 @@ const MODEL_PATHS: Record<string, string> = {
   porsche: '/models/porsche-911.glb',
   nissan: '/models/nissan-gtr.glb',
   lamborghini: '/models/lamborghini-aventador.glb',
-  toyota: '/models/sports-exotic.glb',
+  toyota: '/models/lexus-lfa.glb',
 };
 
 // Model-specific rotation and scale calibration offsets
@@ -53,8 +53,8 @@ const MODEL_CALIBRATIONS: Record<
     yOffset: 0.0,
   },
   toyota: {
-    targetLength: 4.4,
-    rotationY: Math.PI, // Model headlights are at -Z, rotate 180° to face +Z
+    targetLength: 4.5,
+    rotationY: 0, // Lexus LFA model is naturally Y-up and facing forward (+Z)
     rotationX: 0,
     yOffset: 0.0,
   },
@@ -208,10 +208,32 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
             matName.includes('body') ||
             nodeName.includes('body') ||
             nodeName.includes('hood') ||
-            nodeName.includes('door'));
+            nodeName.includes('door') ||
+            nodeName === 'paint' ||
+            nodeName === 'coloured');
 
         if (isBodyPaint) {
           mesh.material = paintMat;
+        }
+
+        // Carbon Fiber Components (e.g., Lexus LFA CFRP roof & rear diffuser)
+        const isCarbonFiber = matName.includes('carbon') || nodeName.includes('carbon');
+        if (isCarbonFiber) {
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: '#151618',
+            roughness: 0.3,
+            metalness: 0.75,
+          });
+        }
+
+        // Honeycomb Mesh & Aero Grilles
+        const isGrille = nodeName.includes('grille');
+        if (isGrille) {
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: 0x111317,
+            roughness: 0.7,
+            metalness: 0.4,
+          });
         }
 
         // 2. Windows and Windshields (Tinted Automotive Glass)
@@ -220,7 +242,8 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
           matName.includes('window') ||
           matName.includes('windscreen') ||
           nodeName.includes('window') ||
-          nodeName.includes('windshield');
+          nodeName.includes('windshield') ||
+          nodeName.toLowerCase().startsWith('glass');
 
         if (isGlass) {
           mesh.material = new THREE.MeshPhysicalMaterial({
@@ -240,7 +263,8 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
           matName.includes('lamp') ||
           matName.includes('turnlight') ||
           nodeName.includes('headlight') ||
-          nodeName.includes('taillight');
+          nodeName.includes('taillight') ||
+          nodeName === 'light';
 
         if (isLight) {
           const isRear = matName.includes('tail') || matName.includes('red') || nodeName.includes('rear');
@@ -252,8 +276,23 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
           });
         }
 
-        // 4. Brake Calipers
-        const isCaliper = matName.includes('caliper') || nodeName.includes('caliper') || nodeName.includes('brake');
+        // 4. Alloy Wheel Rims
+        const isWheelRim =
+          nodeName.includes('wheel_') ||
+          (nodeName.includes('wheel') && !nodeName.includes('steering'));
+        if (isWheelRim) {
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: silhouette === 'toyota' ? 0xd4d4d8 : 0x27272a,
+            metalness: 0.9,
+            roughness: 0.22,
+          });
+        }
+
+        // 5. Brake Calipers
+        const isCaliper =
+          matName.includes('caliper') ||
+          nodeName.includes('caliper') ||
+          (nodeName.includes('brake') && !nodeName.includes('rotor') && !nodeName.includes('disc'));
         if (isCaliper) {
           const caliperColor =
             silhouette === 'porsche'
@@ -262,12 +301,12 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
               ? 0xdc2626 // Nismo Red
               : silhouette === 'lamborghini'
               ? 0xeab308 // Giallo Yellow
-              : 0xf97316; // GR Orange
+              : 0x2563eb; // Lexus F-Sport Blue
 
           mesh.material = new THREE.MeshStandardMaterial({
             color: caliperColor,
-            metalness: 0.6,
-            roughness: 0.25,
+            metalness: 0.7,
+            roughness: 0.22,
           });
         }
 

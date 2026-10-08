@@ -63,9 +63,8 @@ export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
       setIsRunning(true);
     }
     setIsPressingPedal(true);
-    // Rev to random redline range between 7,800 and 9,100 RPM
-    const targetRev = soundProfile === 'v12' || soundProfile === 'v10' ? 8900 : 7900;
-    engineAudio.revTo(targetRev);
+    const config = engineAudio.getProfileConfig();
+    engineAudio.revTo(config.redlineRpm);
   };
 
   const handleStopRev = () => {
@@ -73,17 +72,48 @@ export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
     engineAudio.releasePedal();
   };
 
-  const maxGaugeRpm = 10000;
+  const config = engineAudio.getProfileConfig();
+  const maxGaugeRpm = soundProfile === 'v10' ? 10000 : soundProfile === 'flat6' || soundProfile === 'v12' ? 9500 : 8000;
   const rpmPercent = Math.min(100, Math.max(0, (rpm / maxGaugeRpm) * 100));
-  const isRedline = rpm > 7500;
+  const isRedline = rpm >= config.redlineRpm * 0.88;
+
+  const getProfileTitle = () => {
+    switch (soundProfile) {
+      case 'flat6':
+        return '4.0L FLAT-6 BOXER';
+      case 'v6tt':
+        return '3.8L VR38 TWIN-TURBO';
+      case 'v12':
+        return '6.5L V12 NATURALLY ASPIRATED';
+      case 'v10':
+        return '4.8L YAMAHA V10 (LFA)';
+    }
+  };
+
+  const getStatusText = () => {
+    if (!isRunning) return 'OFFLINE';
+    if (isPressingPedal) {
+      switch (soundProfile) {
+        case 'flat6':
+          return '9,000 RPM BOXER SCREAM';
+        case 'v6tt':
+          return 'TURBO SPOOL & BOOST';
+        case 'v12':
+          return 'V12 F1 OPERATIC WAIL';
+        case 'v10':
+          return 'ROAR OF AN ANGEL (V10)';
+      }
+    }
+    return 'IDLE RUMBLE';
+  };
 
   return (
     <div className="glass-panel p-3.5 rounded-2xl flex flex-col items-center gap-2.5 w-64 border border-white/10 shadow-2xl backdrop-blur-md">
       {/* Top Header */}
       <div className="flex items-center justify-between w-full text-xs font-mono tracking-wider">
-        <span className="text-slate-400 flex items-center gap-1.5 uppercase font-semibold">
+        <span className="text-slate-400 flex items-center gap-1.5 uppercase font-semibold text-[10px]">
           <Flame className={`w-3.5 h-3.5 ${isRedline ? 'text-red-500 animate-bounce' : 'text-amber-400'}`} />
-          {soundProfile.toUpperCase()} AUDIO
+          {getProfileTitle()}
         </span>
         <button
           onClick={toggleEngine}
@@ -116,8 +146,8 @@ export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
 
         {/* Numeric Readout */}
         <div className="flex items-baseline justify-between w-full mt-1.5 font-mono">
-          <span className="text-slate-400 text-[10px] tracking-widest">
-            {isRunning ? (isPressingPedal ? 'W.O.T BOOST' : 'IDLE RUMBLE') : 'OFFLINE'}
+          <span className="text-slate-400 text-[10px] tracking-wider truncate max-w-[140px]">
+            {getStatusText()}
           </span>
           <span className={`text-xl font-black tracking-tight ${isRedline ? 'text-red-400 animate-pulse' : 'text-white'}`}>
             {rpm.toLocaleString()}{' '}
