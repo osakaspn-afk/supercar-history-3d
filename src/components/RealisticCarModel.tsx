@@ -13,6 +13,7 @@ export interface RealisticCarProps {
   wireframe: boolean;
   underglow: boolean;
   wheelSpinSpeed: number;
+  flameActive?: boolean;
 }
 
 // Map brand silhouette to high-fidelity GLB models
@@ -109,6 +110,103 @@ function splitIndexedGeometryByY(mesh: THREE.Mesh): { leftMesh: THREE.Mesh; righ
   return { leftMesh, rightMesh };
 }
 
+// Model-specific exhaust pipe positions in model space
+const EXHAUST_POSITIONS: Record<string, [number, number, number][]> = {
+  porsche: [
+    [-0.14, 0.35, -2.18],
+    [0.14, 0.35, -2.18],
+  ],
+  nissan: [
+    [-0.62, 0.32, -2.25],
+    [-0.46, 0.32, -2.25],
+    [0.46, 0.32, -2.25],
+    [0.62, 0.32, -2.25],
+  ],
+  lamborghini: [
+    [0, 0.58, -2.22],
+  ],
+  toyota: [
+    [0, 0.48, -2.14],
+    [-0.13, 0.38, -2.14],
+    [0.13, 0.38, -2.14],
+  ],
+};
+
+const ExhaustFlames: React.FC<{
+  silhouette: 'porsche' | 'nissan' | 'lamborghini' | 'toyota';
+  active: boolean;
+}> = ({ silhouette, active }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+  const currentScale = useRef(0);
+
+  const tips = EXHAUST_POSITIONS[silhouette] || [[0, 0.4, -2.2]];
+
+  useFrame((_, delta) => {
+    const targetScale = active ? 1 : 0;
+    currentScale.current = THREE.MathUtils.damp(currentScale.current, targetScale, 22, delta);
+
+    if (groupRef.current) {
+      if (currentScale.current > 0.02) {
+        groupRef.current.visible = true;
+        const jitter = 0.85 + Math.random() * 0.4;
+        const scale = currentScale.current * jitter;
+        groupRef.current.scale.set(scale, scale, scale * (1.1 + Math.random() * 0.5));
+      } else {
+        groupRef.current.visible = false;
+      }
+    }
+
+    if (lightRef.current) {
+      lightRef.current.intensity = active ? 22 + Math.random() * 18 : 0;
+    }
+  });
+
+  return (
+    <group ref={groupRef} visible={false}>
+      {tips.map((pos, idx) => (
+        <group key={idx} position={pos}>
+          {/* Outer Orange Fire Cone pointing -Z */}
+          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.2]}>
+            <coneGeometry args={[0.08, 0.48, 12, 1, true]} />
+            <meshBasicMaterial
+              color="#ff5500"
+              transparent
+              opacity={0.88}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+
+          {/* Inner Blue High-Energy Core */}
+          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.1]}>
+            <coneGeometry args={[0.04, 0.26, 12, 1, true]} />
+            <meshBasicMaterial
+              color="#38bdf8"
+              transparent
+              opacity={0.95}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Dynamic Lighting from exhaust flash */}
+      <pointLight
+        ref={lightRef}
+        position={[0, 0.45, -2.3]}
+        color="#f97316"
+        distance={5}
+        decay={2}
+        intensity={0}
+      />
+    </group>
+  );
+};
+
 export const RealisticCarModel: React.FC<RealisticCarProps> = ({
   color,
   finish,
@@ -119,6 +217,7 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
   wireframe,
   underglow,
   wheelSpinSpeed,
+  flameActive,
 }) => {
   const modelUrl = MODEL_PATHS[silhouette] || MODEL_PATHS.porsche;
   const calibration = MODEL_CALIBRATIONS[silhouette] || MODEL_CALIBRATIONS.porsche;
@@ -571,6 +670,9 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
           decay={2}
         />
       )}
+
+      {/* Dynamic Exhaust Backfire Flames */}
+      <ExhaustFlames silhouette={silhouette} active={!!flameActive} />
 
       {/* Car Dimensions Bounding Indicator for debugging / HUD */}
       <mesh visible={false}>

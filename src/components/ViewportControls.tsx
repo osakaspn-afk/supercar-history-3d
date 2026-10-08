@@ -8,8 +8,10 @@ import {
   Grid,
   Sparkles,
   Maximize2,
+  Minimize2,
   Compass,
   Lightbulb,
+  Camera,
 } from 'lucide-react';
 import type { CameraPreset, StudioEnvironment } from './ShowroomCanvas';
 
@@ -39,6 +41,9 @@ interface ViewportControlsProps {
   onSelectFinish: (finish: 'metallic' | 'matte' | 'carbon') => void;
   isThai: boolean;
   silhouette?: 'porsche' | 'nissan' | 'lamborghini' | 'toyota';
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  onTakeSnapshot?: () => void;
 }
 
 export const ViewportControls: React.FC<ViewportControlsProps> = ({
@@ -67,6 +72,9 @@ export const ViewportControls: React.FC<ViewportControlsProps> = ({
   onSelectFinish,
   isThai,
   silhouette,
+  isFullscreen,
+  onToggleFullscreen,
+  onTakeSnapshot,
 }) => {
   return (
     <div className="flex flex-col gap-3 pointer-events-auto">
@@ -207,6 +215,39 @@ export const ViewportControls: React.FC<ViewportControlsProps> = ({
           <Grid className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">X-RAY</span>
         </button>
+
+        {/* Separator */}
+        {(onTakeSnapshot || onToggleFullscreen) && (
+          <div className="h-4 w-[1px] bg-slate-700 mx-0.5 hidden sm:block" />
+        )}
+
+        {/* Photo Mode Snapshot */}
+        {onTakeSnapshot && (
+          <button
+            onClick={onTakeSnapshot}
+            title={isThai ? 'บันทึกภาพถ่ายความละเอียดสูง (Snapshot)' : 'Capture 4K Snapshot'}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center gap-1.5 transition-all bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.25)] active:scale-95"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isThai ? 'ถ่ายภาพ' : 'PHOTO'}</span>
+          </button>
+        )}
+
+        {/* Fullscreen Toggle */}
+        {onToggleFullscreen && (
+          <button
+            onClick={onToggleFullscreen}
+            title={isFullscreen ? (isThai ? 'ออกจากโหมดเต็มหน้าจอ' : 'Exit Fullscreen') : (isThai ? 'ขยายเต็มหน้าจอ' : 'Enter Fullscreen')}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
+              isFullscreen
+                ? 'bg-blue-600 text-white border border-blue-400 shadow-[0_0_14px_rgba(59,130,246,0.5)]'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-700/40'
+            }`}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{isFullscreen ? (isThai ? 'ย่อจอ' : 'EXIT') : (isThai ? 'เต็มจอ' : 'FULLSCREEN')}</span>
+          </button>
+        )}
       </div>
 
       {/* 3. Camera Presets & Environment Selection */}

@@ -107,6 +107,10 @@ class SupercarSoundEngine {
   private currentProfile: SoundProfile = 'flat6';
   private lastBackfireTime: number = 0;
 
+  private volume: number = 0.85;
+  private isMuted: boolean = false;
+  private backfireListeners: Set<(count: number) => void> = new Set();
+
   private initContext() {
     if (!this.ctx) {
       const AudioCtx =
@@ -117,6 +121,37 @@ class SupercarSoundEngine {
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  }
+
+  public setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol));
+    if (this.masterGain && this.ctx) {
+      const target = this.isMuted ? 0.0001 : Math.max(0.001, 0.32 * this.volume);
+      this.masterGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.05);
+    }
+  }
+
+  public getVolume(): number {
+    return this.volume;
+  }
+
+  public setMuted(muted: boolean) {
+    this.isMuted = muted;
+    if (this.masterGain && this.ctx) {
+      const target = this.isMuted ? 0.0001 : Math.max(0.001, 0.32 * this.volume);
+      this.masterGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.05);
+    }
+  }
+
+  public isAudioMuted(): boolean {
+    return this.isMuted;
+  }
+
+  public onBackfire(callback: (count: number) => void): () => void {
+    this.backfireListeners.add(callback);
+    return () => {
+      this.backfireListeners.delete(callback);
+    };
   }
 
   public start(profile: SoundProfile = 'flat6') {
@@ -136,9 +171,10 @@ class SupercarSoundEngine {
     const now = this.ctx.currentTime;
 
     // 1. Master Output Bus
+    const effectiveGain = this.isMuted ? 0.0001 : Math.max(0.001, 0.32 * this.volume);
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.setValueAtTime(0.001, now);
-    this.masterGain.gain.exponentialRampToValueAtTime(0.32, now + 0.25);
+    this.masterGain.gain.exponentialRampToValueAtTime(effectiveGain, now + 0.25);
     this.masterGain.connect(this.ctx.destination);
 
     // 2. Multi-stage Acoustic Enclosure Filter
@@ -256,6 +292,7 @@ class SupercarSoundEngine {
       if (this.currentProfile === 'v6tt') {
         // Nissan GT-R twin-turbo wastegate chatter ("tsu-tsu-tsu-paa!")
         this.playTurboFlutter();
+        this.backfireListeners.forEach((cb) => cb(1));
       } else if (this.currentProfile === 'v12') {
         // Lamborghini aggressive backfire gunshot pops
         this.playBackfire(2);
@@ -265,6 +302,7 @@ class SupercarSoundEngine {
       } else if (this.currentProfile === 'v10') {
         // Lexus LFA high-frequency acoustic trailing wail
         this.playYamahaDecay();
+        this.backfireListeners.forEach((cb) => cb(1));
       }
     }
   }
@@ -311,6 +349,9 @@ class SupercarSoundEngine {
     const now = this.ctx.currentTime;
     if (now - this.lastBackfireTime < 0.18) return;
     this.lastBackfireTime = now;
+
+    // Trigger visual flame particles
+    this.backfireListeners.forEach((cb) => cb(burstCount));
 
     try {
       for (let b = 0; b < burstCount; b++) {

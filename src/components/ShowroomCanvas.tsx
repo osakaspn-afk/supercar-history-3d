@@ -124,7 +124,7 @@ export const ShowroomCanvas: React.FC<ShowroomCanvasProps> = ({
       <Canvas
         shadows
         camera={{ position: [4.2, 1.8, 4.6], fov: 42 }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' }}
       >
         {/* Environment Lights */}
         {getLighting()}

@@ -77,3 +77,20 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+/* Fullscreen 3D Stage expansion */
+#showroom-stage:fullscreen {
+  height: 100vh !important;
+  width: 100vw !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+@keyframes flashFade {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.animate-camera-flash {
+  animation: flashFade 0.35s ease-out forwards;
+}

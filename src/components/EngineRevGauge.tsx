@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Flame } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Flame } from 'lucide-react';
 import { engineAudio } from '../utils/engineAudio';
 
 interface EngineRevGaugeProps {
@@ -7,6 +7,7 @@ interface EngineRevGaugeProps {
   accentColor: string;
   isThai: boolean;
   onRevSpeedChange: (speed: number) => void;
+  onFlameChange?: (active: boolean) => void;
 }
 
 export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
@@ -14,16 +15,38 @@ export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
   accentColor,
   isThai,
   onRevSpeedChange,
+  onFlameChange,
 }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [rpm, setRpm] = useState(0);
   const [isPressingPedal, setIsPressingPedal] = useState(false);
+  const [volume, setVolume] = useState<number>(Math.round(engineAudio.getVolume() * 100));
+  const [isMuted, setIsMuted] = useState<boolean>(engineAudio.isAudioMuted());
   const animationFrameRef = useRef<number | null>(null);
+  const flameTimeoutRef = useRef<any>(null);
 
   // Sync profile when model changes
   useEffect(() => {
     engineAudio.setProfile(soundProfile);
   }, [soundProfile]);
+
+  // Listen to engineAudio backfire events for synchronized 3D flame animation
+  useEffect(() => {
+    const unsubscribe = engineAudio.onBackfire(() => {
+      if (onFlameChange) {
+        onFlameChange(true);
+        if (flameTimeoutRef.current) clearTimeout(flameTimeoutRef.current);
+        flameTimeoutRef.current = setTimeout(() => {
+          onFlameChange(false);
+        }, 280);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (flameTimeoutRef.current) clearTimeout(flameTimeoutRef.current);
+    };
+  }, [onFlameChange]);
 
   // Update gauge RPM loop
   useEffect(() => {
@@ -34,9 +57,16 @@ export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
         // Calculate normalized wheel spin speed for 3D model
         const speed = Math.max(0, (currentRpm - 900) / 8000) * 1.8 + (isRunning ? 0.1 : 0);
         onRevSpeedChange(speed);
+
+        // If at high RPM and pressing pedal, trigger flame
+        const cfg = engineAudio.getProfileConfig();
+        if (isPressingPedal && currentRpm >= cfg.redlineRpm * 0.86) {
+          onFlameChange?.(true);
+        }
       } else {
         setRpm(0);
         onRevSpeedChange(0);
+        onFlameChange?.(false);
       }
       animationFrameRef.current = requestAnimationFrame(loop);
     };
@@ -45,12 +75,13 @@ export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
     return () => {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [isRunning, onRevSpeedChange]);
+  }, [isRunning, isPressingPedal, onRevSpeedChange, onFlameChange]);
 
   const toggleEngine = () => {
     if (isRunning) {
       engineAudio.stop();
       setIsRunning(false);
+      onFlameChange?.(false);
     } else {
       engineAudio.start(soundProfile);
       setIsRunning(true);
@@ -175,6 +206,52 @@ export const EngineRevGauge: React.FC<EngineRevGaugeProps> = ({
           ? isThai ? 'กำลังเหยียบคันเร่ง! (REV)' : 'REVING! (HOLD)'
           : isThai ? 'กดค้างเพื่อเบิ้ลเครื่อง (REV)' : 'HOLD TO REV ENGINE'}
       </button>
+
+      {/* Volume & Audio Controls Strip */}
+      <div className="w-full flex items-center justify-between gap-2 px-1 pt-1.5 border-t border-white/10 text-[11px] font-mono">
+        <button
+          onClick={() => {
+            const nextMuted = !isMuted;
+            setIsMuted(nextMuted);
+            engineAudio.setMuted(nextMuted);
+          }}
+          className={`flex items-center gap-1.5 transition-all ${
+            isMuted ? 'text-red-400 hover:text-red-300' : 'text-slate-400 hover:text-white'
+          }`}
+          title={isMuted ? (isThai ? 'เปิดเสียง' : 'Unmute') : (isThai ? 'ปิดเสียง' : 'Mute')}
+        >
+          {isMuted ? (
+            <VolumeX className="w-3.5 h-3.5 text-red-400" />
+          ) : volume > 50 ? (
+            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+          ) : (
+            <Volume1 className="w-3.5 h-3.5 text-cyan-400" />
+          )}
+          <span className="text-[10px] font-semibold">
+            {isMuted ? (isThai ? 'ปิดเสียง' : 'MUTED') : `${volume}%`}
+          </span>
+        </button>
+
+        <div className="flex-1 flex items-center gap-1.5 max-w-[110px]">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={isMuted ? 0 : volume}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setVolume(val);
+              if (isMuted && val > 0) {
+                setIsMuted(false);
+                engineAudio.setMuted(false);
+              }
+              engineAudio.setVolume(val / 100);
+            }}
+            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+            title={isThai ? `ปรับระดับเสียง: ${volume}%` : `Master Volume: ${volume}%`}
+          />
+        </div>
+      </div>
     </div>
   );
 };

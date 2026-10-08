@@ -12,6 +12,7 @@ export interface Car3DProps {
   wireframe: boolean;
   underglow: boolean;
   wheelSpinSpeed: number;
+  flameActive?: boolean;
 }
 
 export const Car3DModel: React.FC<Car3DProps> = ({

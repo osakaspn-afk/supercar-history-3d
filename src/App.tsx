@@ -48,12 +48,82 @@ export const App: React.FC = () => {
   const [wireframe, setWireframe] = useState<boolean>(false);
   const [underglow, setUnderglow] = useState<boolean>(true);
   const [wheelSpinSpeed, setWheelSpinSpeed] = useState<number>(0);
+  const [flameActive, setFlameActive] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isFlashActive, setIsFlashActive] = useState<boolean>(false);
 
   // Localization (Thai / English)
   const [isThai, setIsThai] = useState<boolean>(true);
 
   // Modals
   const [isCompareOpen, setIsCompareOpen] = useState<boolean>(false);
+
+  // Fullscreen sync handler
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    const stage = document.getElementById('showroom-stage');
+    if (!document.fullscreenElement) {
+      stage?.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
+  const handleTakeSnapshot = () => {
+    const canvas = document.querySelector('#showroom-stage canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    // Flash visual shutter feedback
+    setIsFlashActive(true);
+    setTimeout(() => setIsFlashActive(false), 350);
+
+    try {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = canvas.width;
+      offscreen.height = canvas.height;
+      const ctx = offscreen.getContext('2d');
+      if (!ctx) return;
+
+      // Draw 3D scene from WebGL canvas
+      ctx.drawImage(canvas, 0, 0);
+
+      // Watermark footer bar
+      const bannerHeight = Math.max(54, Math.round(offscreen.height * 0.08));
+      ctx.fillStyle = 'rgba(10, 13, 20, 0.88)';
+      ctx.fillRect(0, offscreen.height - bannerHeight, offscreen.width, bannerHeight);
+
+      // Accent color top border on banner
+      ctx.fillStyle = currentBrand.heritageColor || '#ef4444';
+      ctx.fillRect(0, offscreen.height - bannerHeight, offscreen.width, 3);
+
+      // Car Title & Badge
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(bannerHeight * 0.36)}px "Courier New", monospace`;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`SUPERCAR 3D • ${selectedModel.name.toUpperCase()}`, 24, offscreen.height - bannerHeight / 2);
+
+      // Engine info
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = `normal ${Math.round(bannerHeight * 0.28)}px "Courier New", monospace`;
+      ctx.textAlign = 'right';
+      ctx.fillText(`${selectedModel.specs.engine.toUpperCase()} • 4K ULTRA HD`, offscreen.width - 24, offscreen.height - bannerHeight / 2);
+
+      // Direct download as high-res PNG
+      const link = document.createElement('a');
+      link.download = `${selectedModel.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-supercar-3d.png`;
+      link.href = offscreen.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Snapshot capture error:', err);
+    }
+  };
 
   // Initialize Lenis Smooth Scroll on Mount
   useEffect(() => {
@@ -238,7 +308,15 @@ export const App: React.FC = () => {
       {activeTab === 'showroom' && (
         <div className="flex flex-col w-full">
           {/* Main 3D Studio Stage */}
-          <section className="relative w-full h-[78vh] bg-gradient-to-b from-[#0f1420] via-[#0a0d14] to-[#0a0d14] overflow-hidden border-b border-white/5">
+          <section
+            id="showroom-stage"
+            className="relative w-full h-[78vh] bg-gradient-to-b from-[#0f1420] via-[#0a0d14] to-[#0a0d14] overflow-hidden border-b border-white/5"
+          >
+            {/* Visual Camera Shutter Flash */}
+            {isFlashActive && (
+              <div className="absolute inset-0 bg-white z-50 pointer-events-none animate-camera-flash" />
+            )}
+
             {/* Subtle Ambient Radial Lighting */}
             <div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full blur-[150px] pointer-events-none opacity-25 transition-colors duration-700"
@@ -262,6 +340,7 @@ export const App: React.FC = () => {
                 environment={environment}
                 windTunnelActive={windTunnelActive}
                 accentColor={currentBrand.heritageColor}
+                flameActive={flameActive}
               />
             </div>
 
@@ -282,6 +361,7 @@ export const App: React.FC = () => {
                 accentColor={currentBrand.heritageColor}
                 isThai={isThai}
                 onRevSpeedChange={setWheelSpinSpeed}
+                onFlameChange={setFlameActive}
               />
             </div>
 
@@ -313,6 +393,9 @@ export const App: React.FC = () => {
                 onSelectFinish={setFinish}
                 isThai={isThai}
                 silhouette={selectedModel.silhouetteType}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={handleToggleFullscreen}
+                onTakeSnapshot={handleTakeSnapshot}
               />
             </div>
           </section>

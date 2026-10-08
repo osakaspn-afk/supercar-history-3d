@@ -24,6 +24,12 @@ export const CompareModal: React.FC<CompareModalProps> = ({
     allCars.find((c) => c.brandId !== initialCar1?.brandId)?.id || allCars[1]?.id || ''
   );
 
+  React.useEffect(() => {
+    if (initialCar1?.id) {
+      setCar1Id(initialCar1.id);
+    }
+  }, [initialCar1?.id]);
+
   if (!isOpen) return null;
 
   const car1 = allCars.find((c) => c.id === car1Id) || allCars[0];
