@@ -1,0 +1,42 @@
+services:
+  # 3D Interactive Supercar Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: supercar-3d-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8090}:80"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - supercar-net
+
+  # Cloudflare Tunnel for secure public access without port forwarding
+  # Uncomment or configure TUNNEL_TOKEN if you have a named Cloudflare Tunnel,
+  # or run Quick Tunnel with trycloudflare.com
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: supercar-cloudflare-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --url http://web:80
+    environment:
+      # Optional: paste your Cloudflare Tunnel Token below to connect to your custom domain
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - supercar-net
+    profiles:
+      - tunnel # Run with: docker compose --profile tunnel up
+
+networks:
+  supercar-net:
+    driver: bridge
