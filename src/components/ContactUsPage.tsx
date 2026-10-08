@@ -56,11 +56,11 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({ isThai }) => {
     },
     {
       q: isThai
-        ? 'วิธีรันโปรเจกต์นี้ด้วย Docker Desktop และเชื่อมต่อ Cloudflare Tunnel?'
-        : 'How do I run this locally with Docker Desktop and Cloudflare?',
+        ? 'ข้อมูลความเร็วและเวลาต่อรอบสนาม Nürburgring อ้างอิงจากแหล่งใด?'
+        : 'Where are the top speeds and Nürburgring lap times sourced from?',
       a: isThai
-        ? 'เพียงติดตั้ง Docker Desktop จากนั้นรันคำสั่ง "docker compose up -d --build" ตัวเว็บจะพร้อมใช้งานทันทีที่พอร์ต http://localhost:8090 และสามารถสร้าง Cloudflare Zero Trust Tunnel เพื่อแชร์เป็นโดเมนสาธารณะได้ภายใน 1 คำสั่ง'
-        : 'Run "docker compose up -d --build" with Docker Desktop running. The app serves instantly at http://localhost:8090. You can then expose it globally via Cloudflare Zero Trust Tunnels.',
+        ? 'ข้อมูลเวลาต่อรอบและสเปกเครื่องยนต์ทั้งหมดถูกรวบรวมจากสถิติเวลาอย่างเป็นทางการของผู้ผลิต (Official Factory Certified Lap Times) และการทดสอบของสื่อยานยนต์ระดับสากล เช่น Sport Auto บนสนาม Nürburgring Nordschleife'
+        : 'Lap times and powertrain specifications are sourced directly from certified manufacturer factory records and internationally sanctioned tests such as Sport Auto Supertests on the Nürburgring Nordschleife.',
     },
     {
       q: isThai

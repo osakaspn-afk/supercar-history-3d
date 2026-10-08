@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, ArrowUp } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { GithubIcon } from './GithubIcon';
 import { type BrandId, SUPERCAR_BRANDS } from '../data/supercarsData';
 
@@ -7,14 +7,12 @@ interface SiteFooterProps {
   isThai: boolean;
   onNavigateTab: (tab: 'home' | 'showroom' | 'articles' | 'about' | 'contact') => void;
   onSelectBrand?: (brandId: BrandId) => void;
-  onOpenDeployment: () => void;
 }
 
 export const SiteFooter: React.FC<SiteFooterProps> = ({
   isThai,
   onNavigateTab,
   onSelectBrand,
-  onOpenDeployment,
 }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -52,14 +50,6 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
             </p>
 
             <div className="flex items-center gap-3 mt-2">
-              <button
-                onClick={onOpenDeployment}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-blue-400 border border-slate-700/60 text-xs font-mono transition-all"
-              >
-                <Box className="w-3.5 h-3.5" />
-                <span>Docker & Cloudflare</span>
-              </button>
-
               <a
                 href="https://github.com/osakaspn-afk/supercar-history-3d"
                 target="_blank"
@@ -67,7 +57,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-mono transition-all"
               >
                 <GithubIcon className="w-3.5 h-3.5" />
-                <span>GitHub Repo</span>
+                <span>GitHub Repository</span>
               </a>
             </div>
           </div>
@@ -163,27 +153,27 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
             </ul>
           </div>
 
-          {/* Col 5: Technical Engine */}
+          {/* Col 5: Technical Engine Highlights */}
           <div className="flex flex-col gap-3">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-              {isThai ? 'สถาปัตยกรรมระบบ' : 'Architecture'}
+              {isThai ? 'เทคโนโลยีการแสดงผล' : '3D Engine & Audio'}
             </span>
             <ul className="flex flex-col gap-2 text-xs text-slate-400">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <span>Three.js WebGL Engine</span>
+                <span>Three.js Real-time 60 FPS WebGL</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                 <span>Web Audio Harmonic Synthesizer</span>
               </li>
               <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                <span>Docker Container Engine</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Physical PBR Shader Materials</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                <span>Cloudflare Edge Network</span>
+                <span>Streamline Aerodynamics Physics</span>
               </li>
             </ul>
           </div>

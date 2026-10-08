@@ -11,7 +11,6 @@ import { NavigationHeader, type NavTab } from './components/NavigationHeader';
 import { BrandHero } from './components/BrandHero';
 import { ChapterNav } from './components/ChapterNav';
 import { CompareModal } from './components/CompareModal';
-import { DeploymentModal } from './components/DeploymentModal';
 import { ArticlesPage } from './components/ArticlesPage';
 import { AboutUsPage } from './components/AboutUsPage';
 import { ContactUsPage } from './components/ContactUsPage';
@@ -55,7 +54,6 @@ export const App: React.FC = () => {
 
   // Modals
   const [isCompareOpen, setIsCompareOpen] = useState<boolean>(false);
-  const [isDeploymentOpen, setIsDeploymentOpen] = useState<boolean>(false);
 
   // Initialize Lenis Smooth Scroll on Mount
   useEffect(() => {
@@ -120,7 +118,6 @@ export const App: React.FC = () => {
         isThai={isThai}
         onToggleLanguage={() => setIsThai((prev) => !prev)}
         onOpenCompare={() => setIsCompareOpen(true)}
-        onOpenDeployment={() => setIsDeploymentOpen(true)}
       />
 
       {/* ========================================================================= */}
@@ -373,7 +370,6 @@ export const App: React.FC = () => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onSelectBrand={handleSelectBrand}
-        onOpenDeployment={() => setIsDeploymentOpen(true)}
       />
 
       {/* ========================================================================= */}
@@ -384,12 +380,6 @@ export const App: React.FC = () => {
         onClose={() => setIsCompareOpen(false)}
         isThai={isThai}
         initialCar1={selectedModel}
-      />
-
-      <DeploymentModal
-        isOpen={isDeploymentOpen}
-        onClose={() => setIsDeploymentOpen(false)}
-        isThai={isThai}
       />
     </div>
   );

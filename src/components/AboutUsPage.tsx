@@ -248,20 +248,20 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
         </div>
       </section>
 
-      {/* 4. INFRASTRUCTURE & ARCHITECTURE BADGE */}
+      {/* 4. PERFORMANCE & USER EXPERIENCE HIGHLIGHT */}
       <section className="glass-panel p-8 rounded-3xl border border-white/10 bg-slate-950/70 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
             <Cpu className="w-6 h-6" />
           </div>
           <div>
             <h4 className="text-base font-bold text-white">
-              {isThai ? 'พัฒนาด้วยสถาปัตยกรรมระดับโมเดิร์น' : 'Modern Open-Architecture WebGL'}
+              {isThai ? 'นวัตกรรมการแสดงผลสามมิติบนเว็บเบราว์เซอร์' : 'Next-Generation Browser 3D Experience'}
             </h4>
             <p className="text-xs text-slate-400 mt-1 max-w-xl">
               {isThai
-                ? 'รองรับ Docker Desktop สำหรับการทดสอบในเครื่อง และพร้อมติดตั้งบน Cloudflare Pages / Workers เพื่อการแคชโมเดล 3D แบบ Low-Latency ทั่วโลก'
-                : 'Containerized with Docker Desktop and distributed via Cloudflare edge CDN for worldwide zero-lag 3D asset caching.'}
+                ? 'เข้าชมได้ทันทีผ่านคอมพิวเตอร์และสมาร์ทโฟนโดยไม่ต้องติดตั้งแอปพลิเคชันเพิ่มเติม ประมวลผลกราฟิกและฟิสิกส์อากาศพลศาสตร์แบบเรียลไทม์ 60 FPS'
+                : 'Instantly accessible on desktop and mobile browsers with zero downloads. Delivers real-time 60 FPS graphics, PBR lighting, and physics-based aerodynamic simulation.'}
             </p>
           </div>
         </div>
@@ -269,7 +269,7 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center gap-1.5">
             <Globe2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Open Source Project</span>
+            <span>{isThai ? 'เข้าชมได้ทุกอุปกรณ์' : 'Universal Compatibility'}</span>
           </span>
         </div>
       </section>

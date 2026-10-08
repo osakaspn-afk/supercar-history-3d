@@ -1,9 +1,4 @@
-import {
-  Globe,
-  Swords,
-  Box,
-  Cloud,
-} from 'lucide-react';
+import { Globe, Swords } from 'lucide-react';
 import { GithubIcon } from './GithubIcon';
 import { SUPERCAR_BRANDS, type BrandId } from '../data/supercarsData';
 
@@ -119,16 +114,6 @@ export const BrandNavbar: React.FC<BrandNavbarProps> = ({
           >
             <GithubIcon className="w-4 h-4" />
           </a>
-
-          {/* Docker & Cloudflare Badge Tooltip */}
-          <div className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
-            <span title="Docker Desktop Ready" className="flex items-center">
-              <Box className="w-3.5 h-3.5 text-blue-400" />
-            </span>
-            <span title="Cloudflare Enabled" className="flex items-center">
-              <Cloud className="w-3.5 h-3.5 text-orange-400" />
-            </span>
-          </div>
         </div>
       </div>
     </header>

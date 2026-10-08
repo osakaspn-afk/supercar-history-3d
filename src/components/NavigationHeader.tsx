@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Globe,
   Swords,
-  Box,
   Menu,
   X,
   Compass,
@@ -25,7 +24,6 @@ interface NavigationHeaderProps {
   isThai: boolean;
   onToggleLanguage: () => void;
   onOpenCompare: () => void;
-  onOpenDeployment: () => void;
 }
 
 interface NavItemDef {
@@ -43,7 +41,6 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   isThai,
   onToggleLanguage,
   onOpenCompare,
-  onOpenDeployment,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const brandList: BrandId[] = ['porsche', 'nissan', 'lamborghini', 'toyota'];
@@ -128,15 +125,6 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           >
             <Globe className="w-3.5 h-3.5 text-blue-400" />
             <span>{isThai ? 'TH' : 'EN'}</span>
-          </button>
-
-          {/* Docker & Cloudflare Setup Button */}
-          <button
-            onClick={onOpenDeployment}
-            className="hidden md:flex p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-all"
-            title="Docker & Cloudflare Deployment Info"
-          >
-            <Box className="w-4 h-4 text-blue-400" />
           </button>
 
           {/* GitHub Repo */}
@@ -237,17 +225,6 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             >
               <Swords className="w-4 h-4" />
               <span>{isThai ? 'ประลองสเปก (VS Battle)' : 'VS Battle'}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onOpenDeployment();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 text-xs font-mono text-blue-400 p-2"
-            >
-              <Box className="w-4 h-4" />
-              <span>Docker & Cloudflare</span>
             </button>
           </div>
         </div>
