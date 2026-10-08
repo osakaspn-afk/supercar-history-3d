@@ -579,3 +579,10 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
     </group>
   );
 };
+
+// Proactively preload GLB models with Draco decoder for instantaneous zero-stutter switching
+useGLTF.preload(MODEL_PATHS.porsche, '/draco/gltf/');
+useGLTF.preload(MODEL_PATHS.nissan, '/draco/gltf/');
+useGLTF.preload(MODEL_PATHS.lamborghini, '/draco/gltf/');
+useGLTF.preload(MODEL_PATHS.toyota, '/draco/gltf/');
+
