@@ -384,15 +384,13 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
       opacity: 0.88,
     });
 
-    // Glass material
-    const glassMat = new THREE.MeshPhysicalMaterial({
+    // High-performance tinted automotive glass (zero transmission framebuffer overhead)
+    const glassMat = new THREE.MeshStandardMaterial({
       color: 0x0a0e17,
-      metalness: 0.1,
-      roughness: 0.04,
-      transmission: 0.8,
-      thickness: 0.5,
+      metalness: 0.85,
+      roughness: 0.08,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.72,
     });
 
     // Carbon fiber material
@@ -436,8 +434,8 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        mesh.castShadow = !wireframe;
-        mesh.receiveShadow = !wireframe;
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
 
         const baseMat = mesh.userData.baseMaterial || mesh.material;
         const matName = (mesh.userData.baseMatName || (baseMat as any)?.name || '').toLowerCase();
@@ -642,20 +640,18 @@ export const RealisticCarModel: React.FC<RealisticCarProps> = ({
             target-position={[-0.4, 0, 16]}
             angle={0.42}
             penumbra={0.65}
-            intensity={90}
-            distance={28}
+            intensity={65}
+            distance={26}
             color={0xe0f2fe}
-            castShadow
           />
           <spotLight
             position={[0.7, 0.5, 2.2]}
             target-position={[0.4, 0, 16]}
             angle={0.42}
             penumbra={0.65}
-            intensity={90}
-            distance={28}
+            intensity={65}
+            distance={26}
             color={0xe0f2fe}
-            castShadow
           />
         </>
       )}

@@ -125,8 +125,10 @@ export const App: React.FC = () => {
     }
   };
 
-  // Initialize Lenis Smooth Scroll on Mount
+  // Initialize Lenis Smooth Scroll only when active on Home tab
   useEffect(() => {
+    if (activeTab !== 'home') return;
+
     const lenis = new Lenis({
       autoRaf: true,
       smoothWheel: true,
@@ -150,7 +152,7 @@ export const App: React.FC = () => {
       lenis.destroy();
       window.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [activeTab]);
 
   // Jump to specific chapter in scroll mode
   const handleJumpToChapter = (chapterIdx: number) => {

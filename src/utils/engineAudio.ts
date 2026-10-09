@@ -111,6 +111,23 @@ class SupercarSoundEngine {
   private isMuted: boolean = false;
   private backfireListeners: Set<(count: number) => void> = new Set();
 
+  constructor() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!this.ctx) return;
+        if (document.hidden) {
+          if (this.ctx.state === 'running') {
+            this.ctx.suspend().catch(() => {});
+          }
+        } else {
+          if (this.isRunning && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+          }
+        }
+      });
+    }
+  }
+
   private initContext() {
     if (!this.ctx) {
       const AudioCtx =

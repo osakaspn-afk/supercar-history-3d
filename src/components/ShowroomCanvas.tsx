@@ -84,17 +84,17 @@ export const ShowroomCanvas: React.FC<ShowroomCanvasProps> = ({
       case 'cyber':
         return (
           <>
-            <ambientLight intensity={0.4} color="#0f172a" />
+            <ambientLight intensity={0.5} color="#0f172a" />
             <directionalLight position={[6, 8, 5]} intensity={1.5} color="#38bdf8" />
             <directionalLight position={[-6, 4, -5]} intensity={1.8} color="#ec4899" />
-            <spotLight position={[0, 9, 0]} intensity={40} angle={0.5} penumbra={0.7} color="#ffffff" castShadow />
+            <spotLight position={[0, 9, 0]} intensity={35} angle={0.5} penumbra={0.7} color="#ffffff" />
           </>
         );
       case 'sunset':
         return (
           <>
             <ambientLight intensity={0.6} color="#78350f" />
-            <directionalLight position={[10, 6, 8]} intensity={3.0} color="#fb923c" castShadow />
+            <directionalLight position={[10, 6, 8]} intensity={2.8} color="#fb923c" />
             <directionalLight position={[-8, 3, -6]} intensity={1.2} color="#f43f5e" />
           </>
         );
@@ -111,9 +111,9 @@ export const ShowroomCanvas: React.FC<ShowroomCanvasProps> = ({
         return (
           <>
             <ambientLight intensity={0.8} color="#ffffff" />
-            <directionalLight position={[5, 10, 5]} intensity={2.2} color="#ffffff" castShadow />
+            <directionalLight position={[5, 10, 5]} intensity={2.2} color="#ffffff" />
             <directionalLight position={[-5, 7, -5]} intensity={1.4} color="#e2e8f0" />
-            <spotLight position={[0, 8, 0]} intensity={45} angle={0.65} penumbra={0.8} color="#ffffff" />
+            <spotLight position={[0, 8, 0]} intensity={40} angle={0.65} penumbra={0.8} color="#ffffff" />
           </>
         );
     }
@@ -122,9 +122,15 @@ export const ShowroomCanvas: React.FC<ShowroomCanvasProps> = ({
   return (
     <div className="w-full h-full relative select-none">
       <Canvas
-        shadows
         camera={{ position: [4.2, 1.8, 4.6], fov: 42 }}
-        gl={{ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' }}
+        dpr={[1, 1.5]}
+        gl={{
+          antialias: true,
+          preserveDrawingBuffer: true,
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true,
+        }}
       >
         {/* Environment Lights */}
         {getLighting()}
@@ -137,13 +143,15 @@ export const ShowroomCanvas: React.FC<ShowroomCanvasProps> = ({
         {/* Aerodynamic Wind Tunnel Particles */}
         <WindTunnelAero active={windTunnelActive} accentColor={accentColor} />
 
-        {/* Soft Contact Ground Shadows */}
+        {/* Soft Contact Ground Shadows - Computed once with frames=1 */}
         <ContactShadows
           position={[0, 0.005, 0]}
           opacity={0.75}
           scale={10}
           blur={1.8}
           far={3.5}
+          resolution={512}
+          frames={1}
         />
 
         {/* Studio Ground Grid & Floor */}
@@ -154,8 +162,8 @@ export const ShowroomCanvas: React.FC<ShowroomCanvasProps> = ({
             position={[0, 0.001, 0]}
           />
           {/* Circular Showroom Turntable */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-            <circleGeometry args={[4.8, 64]} />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+            <circleGeometry args={[4.8, 48]} />
             <meshStandardMaterial
               color={environment === 'cyber' ? '#090d16' : '#0d131f'}
               roughness={0.2}

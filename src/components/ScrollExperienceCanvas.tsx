@@ -107,15 +107,20 @@ export const ScrollExperienceCanvas: React.FC<ScrollExperienceCanvasProps> = ({
   return (
     <div className="w-full h-full relative select-none">
       <Canvas
-        shadows
         camera={{ position: [4.8, 1.8, 5.0], fov: 42 }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        dpr={[1, 1.5]}
+        gl={{
+          antialias: true,
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true,
+        }}
       >
         {/* Cinematic Studio Lights */}
-        <ambientLight intensity={0.5} color="#0f172a" />
-        <directionalLight position={[6, 9, 6]} intensity={2.2} color="#ffffff" castShadow />
+        <ambientLight intensity={0.6} color="#0f172a" />
+        <directionalLight position={[6, 9, 6]} intensity={2.2} color="#ffffff" />
         <directionalLight position={[-6, 5, -6]} intensity={1.4} color={accentColor} />
-        <spotLight position={[0, 9, 2]} intensity={45} angle={0.6} penumbra={0.8} color="#ffffff" />
+        <spotLight position={[0, 9, 2]} intensity={40} angle={0.6} penumbra={0.8} color="#ffffff" />
 
         {/* Real 3D Supercar Model */}
         <Suspense fallback={<ModelLoadingFallback accentColor={accentColor} />}>
@@ -135,20 +140,22 @@ export const ScrollExperienceCanvas: React.FC<ScrollExperienceCanvasProps> = ({
         {/* Aerodynamic Wind Tunnel Flow Streamlines */}
         <WindTunnelAero active={isAeroChapter} accentColor={accentColor} />
 
-        {/* Contact Shadow on Floor */}
+        {/* Contact Shadow on Floor - Precomputed with frames=1 */}
         <ContactShadows
           position={[0, 0.005, 0]}
           opacity={0.8}
           scale={10}
           blur={1.8}
           far={3.5}
+          resolution={512}
+          frames={1}
         />
 
         {/* Studio Floor & Turntable */}
         <group position={[0, 0, 0]}>
           <gridHelper args={[32, 32, '#1e293b', '#0f172a']} position={[0, 0.001, 0]} />
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-            <circleGeometry args={[5.2, 64]} />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+            <circleGeometry args={[5.2, 48]} />
             <meshStandardMaterial color="#090d16" roughness={0.2} metalness={0.85} />
           </mesh>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
